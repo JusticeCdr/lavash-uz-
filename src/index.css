@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-green: #005a32;
+  --color-brand-red: #e31837;
+  --color-brand-cream: #fcf8f2;
+
+  --font-sans: "Inter", "system-ui", "sans-serif";
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-cream);
+    color: var(--color-gray-900);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Hide scrollbar for TV pages */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
