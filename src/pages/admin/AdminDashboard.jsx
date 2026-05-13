@@ -131,17 +131,31 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateTvSetting = async (id, field, value) => {
+  const handleTvSettingChange = (id, field, value) => {
+    setTvSettings(prevSettings => 
+      prevSettings.map(tv => tv.id === id ? { ...tv, [field]: value } : tv)
+    );
+  };
+
+  const saveTvSettingToDb = async (id, field, value) => {
     try {
       const { error } = await supabase
         .from('tv_settings')
         .update({ [field]: value })
         .eq('id', id);
-      if (error) throw error;
-      fetchData();
+      if (error) {
+        fetchData(); // revert
+        throw error;
+      }
     } catch (error) {
       alert('Error updating settings: ' + error.message);
     }
+  };
+
+  const toggleTvSettingStatus = (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    handleTvSettingChange(id, 'is_active', newStatus);
+    saveTvSettingToDb(id, 'is_active', newStatus);
   };
 
   const openModal = (product = null) => {
@@ -172,18 +186,19 @@ const AdminDashboard = () => {
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-brand-green">L.UZ Admin</h1>
-            <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-brand-green hidden sm:block">L.UZ Admin</h1>
+            <h1 className="text-xl font-bold text-brand-green sm:hidden">L.UZ</h1>
+            <div className="flex bg-gray-100 rounded-lg p-1 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('products')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'products' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'products' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
               >
                 Products
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'settings' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'settings' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
               >
                 TV Settings
               </button>
@@ -191,7 +206,7 @@ const AdminDashboard = () => {
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-500 hover:text-brand-red transition-colors"
+            className="flex items-center gap-2 text-gray-500 hover:text-brand-red transition-colors ml-2 shrink-0"
           >
             <LogOut size={20} />
             <span className="hidden sm:inline">Logout</span>
@@ -292,7 +307,8 @@ const AdminDashboard = () => {
                     <input
                       type="text"
                       value={tv.title || ''}
-                      onChange={(e) => updateTvSetting(tv.id, 'title', e.target.value)}
+                      onChange={(e) => handleTvSettingChange(tv.id, 'title', e.target.value)}
+                      onBlur={(e) => saveTvSettingToDb(tv.id, 'title', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-green focus:border-brand-green"
                     />
                   </div>
@@ -302,7 +318,8 @@ const AdminDashboard = () => {
                     <input
                       type="text"
                       value={tv.subtitle || ''}
-                      onChange={(e) => updateTvSetting(tv.id, 'subtitle', e.target.value)}
+                      onChange={(e) => handleTvSettingChange(tv.id, 'subtitle', e.target.value)}
+                      onBlur={(e) => saveTvSettingToDb(tv.id, 'subtitle', e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-green focus:border-brand-green"
                     />
                   </div>
@@ -310,7 +327,7 @@ const AdminDashboard = () => {
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-sm font-medium text-gray-700">Display Status</span>
                     <button
-                      onClick={() => updateTvSetting(tv.id, 'is_active', !tv.is_active)}
+                      onClick={() => toggleTvSettingStatus(tv.id, tv.is_active)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${tv.is_active ? 'bg-brand-green' : 'bg-gray-300'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${tv.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -327,15 +344,16 @@ const AdminDashboard = () => {
       {/* Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900">{editingProduct ? 'Edit Product' : 'Add New Product'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 shrink-0">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">{editingProduct ? 'Edit Product' : 'Add Product'}</h3>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={saveProduct} className="p-6 space-y-6">
+            <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+              <form onSubmit={saveProduct} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -432,22 +450,24 @@ const AdminDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  className="px-4 sm:px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-green"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploadingImage}
-                  className="px-6 py-2.5 text-sm font-medium text-white bg-brand-green rounded-xl hover:bg-brand-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 sm:px-6 py-2.5 text-sm font-medium text-white bg-brand-green rounded-xl hover:bg-brand-green/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save size={18} />
-                  {editingProduct ? 'Update Product' : 'Save Product'}
+                  <span className="hidden sm:inline">{editingProduct ? 'Update Product' : 'Save Product'}</span>
+                  <span className="sm:hidden">Save</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
+      </div>
       )}
     </div>
   );
