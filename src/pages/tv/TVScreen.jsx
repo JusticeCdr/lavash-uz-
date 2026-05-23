@@ -13,8 +13,10 @@ const TVScreen = () => {
   const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState(null);
   
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [cycleIndex, setCycleIndex] = useState(0);
+  const [pagination, setPagination] = useState({
+    currentIndex: 0,
+    cycleIndex: 0
+  });
 
   useEffect(() => {
     fetchData();
@@ -37,19 +39,22 @@ const TVScreen = () => {
   }, [tvNumber]);
 
   useEffect(() => {
-    // Rotation logic: Every 8 seconds, move to the next batch
+    // Rotation logic: Every 8 seconds, move to the next batch strictly sequentially
     if (products.length === 0) return;
 
     const interval = setInterval(() => {
-      setCycleIndex((prevCycle) => {
-        const nextCycle = (prevCycle + 1) % CYCLE_SIZES.length;
-        
-        setCurrentIndex((prevIndex) => {
-          // Advance index by the amount we JUST showed (which is CYCLE_SIZES[prevCycle])
-          return (prevIndex + CYCLE_SIZES[prevCycle]) % products.length;
-        });
+      setPagination((prev) => {
+        const currentBatchSize = CYCLE_SIZES[prev.cycleIndex];
+        let nextIndex = prev.currentIndex + currentBatchSize;
+        let nextCycle = (prev.cycleIndex + 1) % CYCLE_SIZES.length;
 
-        return nextCycle;
+        // Strict Reset: if we have shown all items (or reached the end of the array)
+        if (nextIndex >= products.length) {
+          nextIndex = 0;
+          nextCycle = 0;
+        }
+
+        return { currentIndex: nextIndex, cycleIndex: nextCycle };
       });
     }, 8000);
 
@@ -83,16 +88,14 @@ const TVScreen = () => {
     );
   }
 
+  const { currentIndex, cycleIndex } = pagination;
   const currentSize = CYCLE_SIZES[cycleIndex];
-  const currentBatch = products.slice(currentIndex, currentIndex + currentSize);
   
-  // Wrap around seamlessly
-  while (currentBatch.length < currentSize && products.length > 0) {
-     currentBatch.push(products[currentBatch.length % products.length]);
-  }
+  // Take exactly the remainder without wrapping
+  const currentBatch = products.slice(currentIndex, currentIndex + currentSize);
 
-  // Determine the center product for the watermark
-  const centerProduct = currentBatch[Math.floor(currentSize / 2)];
+  // Determine the center product for the watermark based on the ACTUAL batch length
+  const centerProduct = currentBatch[Math.floor(currentBatch.length / 2)];
 
   // Animation Variants
   const containerVariants = {
@@ -112,17 +115,17 @@ const TVScreen = () => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = idx - mid;
-      return { opacity: 0, x: dist * 150, scale: 0.8 };
+      return { x: dist * 150, scale: 0.8 };
     },
     visible: (custom) => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = Math.abs(idx - mid);
       const scale = 1.05 - (dist * 0.15); 
-      const y = dist * 70; 
+      // Increased y offset for the larger cards to maintain staggering effect
+      const y = dist * 90; 
       
       return { 
-        opacity: 1, 
         x: 0, 
         y, 
         scale, 
@@ -133,7 +136,7 @@ const TVScreen = () => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = idx - mid;
-      return { opacity: 0, x: dist * 150, scale: 0.8, transition: { duration: 0.8, ease: 'easeInOut' } };
+      return { x: dist * 150, scale: 0.8, transition: { duration: 0.8, ease: 'easeInOut' } };
     }
   };
 
@@ -157,7 +160,7 @@ const TVScreen = () => {
     <div className="w-screen h-screen bg-[#FACC15] overflow-hidden no-scrollbar flex flex-col relative font-sans">
       
       {/* Background Decor: Diagonal Green Stripe */}
-      <div className="absolute top-1/2 left-1/2 w-[150%] h-[40%] bg-brand-green -translate-x-1/2 -translate-y-1/2 -rotate-[10deg] border-y-[12px] border-dashed border-white/30 shadow-2xl pointer-events-none z-0"></div>
+      <div className="absolute top-1/2 left-1/2 w-[150%] h-[40%] bg-brand-green -translate-x-1/2 -translate-y-1/2 -rotate-[10deg] border-y-[12px] border-dashed border-white/30 pointer-events-none z-0"></div>
 
       {/* Dynamic Watermark */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 flex items-center justify-center opacity-[0.04]">
@@ -181,18 +184,18 @@ const TVScreen = () => {
       {/* Header (Fully Transparent & Blended) */}
       <header className="w-full flex justify-between items-center px-16 py-12 z-10 bg-transparent">
         {/* Premium stylized L.Uz logo */}
-        <div className="font-black text-5xl xl:text-7xl tracking-tighter drop-shadow-md flex items-center">
+        <div className="font-black text-5xl xl:text-7xl tracking-tighter flex items-center">
           <span className="text-brand-red">L</span>
           <span className="text-brand-green">.Uz</span>
         </div>
         
         {settings && (
           <div className="flex flex-col text-right">
-            <h1 className="text-5xl xl:text-6xl font-black text-gray-900 tracking-tight uppercase drop-shadow-md">
+            <h1 className="text-5xl xl:text-6xl font-black text-gray-900 tracking-tight uppercase">
               {settings.title}
             </h1>
             {settings.subtitle && (
-              <p className="text-3xl text-brand-green font-bold tracking-wide uppercase mt-2 drop-shadow-md">
+              <p className="text-3xl text-brand-green font-bold tracking-wide uppercase mt-2">
                 {settings.subtitle}
               </p>
             )}
@@ -204,13 +207,13 @@ const TVScreen = () => {
       <main className="flex-1 flex items-center justify-center px-12 z-10 w-full h-full pb-20">
         <AnimatePresence mode="wait">
           {products.length > 0 ? (
-            <motion.div
+              <motion.div
               key={cycleIndex}
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="w-full h-full flex items-center justify-center gap-6"
+              className="w-full h-full flex items-center justify-center gap-6 will-change-transform transform-gpu"
             >
               {currentBatch.map((product, idx) => {
                 const customProps = { idx, total: currentSize };
@@ -221,47 +224,38 @@ const TVScreen = () => {
                     key={`${product.id}-${idx}`}
                     custom={customProps}
                     variants={dynamicVariants}
-                    className={`flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'} will-change-transform`}
+                    className={`flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'} will-change-transform transform-gpu`}
                   >
-                    <motion.div custom={customProps} animate="floating" className="w-full relative group will-change-transform">
+                    <motion.div custom={customProps} animate="floating" className="w-full relative group will-change-transform transform-gpu">
                       
-                      {/* Premium Card Layout matching Reference - FIXED SIZES for Performance */}
-                      <div className="w-[300px] h-[450px] bg-[#fcf8f2] rounded-[2rem] p-4 flex flex-col justify-between items-center overflow-hidden shadow-2xl">
+                      {/* Premium Card Layout - MAX SIZES for TV with Border instead of Shadow */}
+                      <div className="w-[360px] h-[600px] bg-[#fcf8f2] rounded-[3rem] p-6 pb-10 flex flex-col items-center overflow-hidden border border-yellow-400/30">
                         
-                        {/* Image Box - FIXED SIZES */}
-                        <div className="w-full h-[200px] shrink-0 rounded-[1.5rem] overflow-hidden bg-[#F3CA4B] relative shadow-inner">
+                        {/* Image Box - MAX SIZES */}
+                        <div className="w-full h-[340px] shrink-0 rounded-[2rem] overflow-hidden bg-white/50 relative">
                            {product.image_url ? (
                               <img 
                                 src={product.image_url} 
                                 alt={product.name_uz} 
-                                className="w-full h-full object-contain"
+                                className="w-full h-full object-cover mix-blend-multiply"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-2xl">
+                              <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl">
                                 L.UZ
                               </div>
                             )}
                         </div>
 
-                        {/* Title & Price Container with Fixed Flex Alignment */}
-                        <div className="w-full flex flex-col items-center justify-between text-center px-2 flex-1 pt-6 pb-2">
-                           <h2 className="text-3xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 drop-shadow-sm">
+                        {/* Title & Price Container with tight gap and bottom padding */}
+                        <div className="w-full flex flex-col items-center justify-between text-center flex-1 mt-4">
+                           <h2 className="text-5xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2">
                             {product.name_uz}
                            </h2>
                            
-                           {/* Price separated below with margin and shine animation */}
-                           <motion.div 
-                             initial={{ backgroundPosition: '200% 0' }}
-                             animate={{ backgroundPosition: '-200% 0' }}
-                             transition={{ duration: 2, repeat: Infinity, repeatDelay: 2.5, ease: "linear" }}
-                             className="mt-auto text-4xl font-black drop-shadow-md bg-clip-text text-transparent inline-block pb-1 will-change-transform"
-                             style={{
-                               backgroundImage: 'linear-gradient(110deg, #e31837 35%, #ffffff 50%, #e31837 65%)',
-                               backgroundSize: '200% 100%'
-                             }}
-                           >
+                           {/* Price separated below with Solid Text Color (No Animations for Max FPS) */}
+                           <div className="mb-4 text-6xl xl:text-7xl font-black text-brand-red inline-block will-change-transform transform-gpu">
                              {product.price.toLocaleString()} UZS
-                           </motion.div>
+                           </div>
                         </div>
 
                       </div>

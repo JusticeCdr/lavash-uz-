@@ -7,7 +7,7 @@ body {
   color: #111827;
   font-family: 'Inter', system-ui, sans-serif;
 }
-
+  
 /* Hide scrollbar for TV pages */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
