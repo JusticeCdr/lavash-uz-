@@ -204,7 +204,7 @@ const TVScreen = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12">
+      <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12 -translate-y-[50px]">
         <AnimatePresence mode="wait">
           {products.length > 0 ? (
               <motion.div
