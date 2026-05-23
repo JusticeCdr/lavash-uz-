@@ -1,7 +1,24 @@
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Tv, Settings } from 'lucide-react';
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  const handleTvClick = async (tvNum) => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        await document.documentElement.webkitRequestFullscreen();
+      } else if (document.documentElement.msRequestFullscreen) {
+        await document.documentElement.msRequestFullscreen();
+      }
+    } catch (err) {
+      console.warn('Fullscreen request failed:', err);
+    }
+    navigate(`/tv/${tvNum}`);
+  };
+
   return (
     <div className="min-h-screen bg-brand-green flex flex-col items-center justify-center p-4">
       {/* Admin Link */}
@@ -20,10 +37,10 @@ const Home = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
         {[1, 2, 3].map((tvNum) => (
-          <Link
+          <button
             key={tvNum}
-            to={`/tv/${tvNum}`}
-            className="group relative bg-white rounded-2xl p-8 flex flex-col items-center justify-center gap-4 hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl"
+            onClick={() => handleTvClick(tvNum)}
+            className="group relative bg-white rounded-2xl p-8 flex flex-col items-center justify-center gap-4 hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl cursor-pointer"
           >
             <div className="absolute inset-0 bg-brand-red rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
             <Tv size={64} className="text-brand-green group-hover:text-brand-red transition-colors duration-300" />
@@ -31,7 +48,7 @@ const Home = () => {
               {tvNum}-TV
             </h2>
             <p className="text-gray-500 text-sm font-medium">Fullscreen Display</p>
-          </Link>
+          </button>
         ))}
       </div>
     </div>

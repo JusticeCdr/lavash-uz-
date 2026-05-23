@@ -3,13 +3,18 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Fixed cycle pattern as requested by user
+const CYCLE_SIZES = [4, 5, 3];
+
 const TVScreen = () => {
   const { id } = useParams();
   const tvNumber = Number(id);
 
   const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState(null);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [cycleIndex, setCycleIndex] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -32,18 +37,24 @@ const TVScreen = () => {
   }, [tvNumber]);
 
   useEffect(() => {
-    // Rotation logic: Every 8 seconds, move to the next batch of 3 products
-    if (products.length <= 3) return;
+    // Rotation logic: Every 8 seconds, move to the next batch
+    if (products.length === 0) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => {
-        const nextIndex = prevIndex + 3;
-        return nextIndex >= products.length ? 0 : nextIndex;
+      setCycleIndex((prevCycle) => {
+        const nextCycle = (prevCycle + 1) % CYCLE_SIZES.length;
+        
+        setCurrentIndex((prevIndex) => {
+          // Advance index by the amount we JUST showed (which is CYCLE_SIZES[prevCycle])
+          return (prevIndex + CYCLE_SIZES[prevCycle]) % products.length;
+        });
+
+        return nextCycle;
       });
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [products]);
+  }, [products.length]);
 
   const fetchData = async () => {
     const { data: pData } = await supabase
@@ -72,20 +83,23 @@ const TVScreen = () => {
     );
   }
 
-  // Get current 3 products to display
-  const currentBatch = products.slice(currentIndex, currentIndex + 3);
-  // If we reach the end and have less than 3, we can wrap around or just show what's left.
-  // For a seamless loop, we might want to pad with the beginning items if less than 3 are remaining in the slice.
-  while (currentBatch.length < 3 && products.length > 0) {
+  const currentSize = CYCLE_SIZES[cycleIndex];
+  const currentBatch = products.slice(currentIndex, currentIndex + currentSize);
+  
+  // Wrap around seamlessly
+  while (currentBatch.length < currentSize && products.length > 0) {
      currentBatch.push(products[currentBatch.length % products.length]);
   }
+
+  // Determine the center product for the watermark
+  const centerProduct = currentBatch[Math.floor(currentSize / 2)];
 
   // Animation Variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.3 }
+      transition: { staggerChildren: 0.15 }
     },
     exit: {
       opacity: 0,
@@ -93,121 +107,179 @@ const TVScreen = () => {
     }
   };
 
-  const itemVariants = [
-    // 1st Item: Left, slightly smaller
-    {
-      hidden: { opacity: 0, x: -100, scale: 0.8 },
-      visible: { opacity: 1, x: 0, scale: 0.9, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-      exit: { opacity: 0, x: -100, scale: 0.8, transition: { duration: 0.5 } },
-      floating: { y: [0, -15, 0], transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' } }
+  const dynamicVariants = {
+    hidden: (custom) => {
+      const { idx, total } = custom;
+      const mid = Math.floor(total / 2);
+      const dist = idx - mid;
+      return { opacity: 0, x: dist * 100, scale: 0.8 };
     },
-    // 2nd Item: Center, largest (Hero)
-    {
-      hidden: { opacity: 0, y: 100, scale: 0.8 },
-      visible: { opacity: 1, y: 0, scale: 1.1, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-      exit: { opacity: 0, y: -100, scale: 0.8, transition: { duration: 0.5 } },
-      floating: { y: [0, -20, 0], transition: { duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 } }
+    visible: (custom) => {
+      const { idx, total } = custom;
+      const mid = Math.floor(total / 2);
+      const dist = Math.abs(idx - mid);
+      // Center item is largest, sides are progressively smaller
+      const scale = 1.05 - (dist * 0.15); 
+      // Center item is highest, sides are progressively lower
+      const y = dist * 70; 
+      
+      return { 
+        opacity: 1, 
+        x: 0, 
+        y, 
+        scale, 
+        transition: { type: 'spring', stiffness: 100, damping: 20 } 
+      };
     },
-    // 3rd Item: Right, slightly smaller
-    {
-      hidden: { opacity: 0, x: 100, scale: 0.8 },
-      visible: { opacity: 1, x: 0, scale: 0.9, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-      exit: { opacity: 0, x: 100, scale: 0.8, transition: { duration: 0.5 } },
-      floating: { y: [0, -10, 0], transition: { duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.2 } }
+    exit: (custom) => {
+      const { idx, total } = custom;
+      const mid = Math.floor(total / 2);
+      const dist = idx - mid;
+      return { opacity: 0, x: dist * 100, scale: 0.8, transition: { duration: 0.5 } };
     }
-  ];
+  };
+
+  const floatingVariants = {
+    floating: (custom) => {
+      const { idx, total } = custom;
+      const dist = Math.abs(idx - Math.floor(total / 2));
+      return {
+        y: [0, -15 - (dist * 5), 0],
+        transition: { 
+          duration: 4 + (dist * 0.5), 
+          repeat: Infinity, 
+          ease: 'easeInOut', 
+          delay: dist * 0.2 
+        }
+      };
+    }
+  };
 
   return (
-    <div className="w-screen h-screen bg-brand-cream overflow-hidden no-scrollbar flex flex-col relative font-sans">
-      {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-brand-green/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-[60%] -right-[10%] w-[60%] h-[60%] bg-brand-red/5 rounded-full blur-3xl"></div>
+    <div className="w-screen h-screen bg-[#FACC15] overflow-hidden no-scrollbar flex flex-col relative font-sans">
+      
+      {/* Background Decor: Diagonal Green Stripe */}
+      <div className="absolute top-1/2 left-1/2 w-[150%] h-[40%] bg-brand-green -translate-x-1/2 -translate-y-1/2 -rotate-[10deg] border-y-[12px] border-dashed border-white/30 shadow-2xl pointer-events-none z-0"></div>
+
+      {/* Dynamic Watermark */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 flex items-center justify-center opacity-[0.04]">
+        <AnimatePresence mode="wait">
+          {centerProduct && (
+            <motion.div
+              key={centerProduct.name_uz}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              transition={{ duration: 1 }}
+              className="text-black font-black text-[12vw] leading-none whitespace-pre-wrap text-center rotate-[-10deg]"
+              style={{ width: '200%', transformOrigin: 'center' }}
+            >
+              {Array(15).fill(centerProduct.name_uz.toUpperCase()).join('  •  ')}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Header */}
-      <header className="w-full flex justify-between items-center px-16 py-8 z-10 bg-white/80 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-6">
-          <div className="bg-brand-green text-white font-black text-5xl px-6 py-4 rounded-2xl shadow-lg">
-            L.UZ
+      {/* Header (Fully Transparent & Blended) */}
+      <header className="w-full flex justify-between items-center px-16 py-12 z-10 bg-transparent">
+        <div className="flex items-center gap-8">
+          {/* Premium stylized L.Uz logo */}
+          <div className="font-black text-5xl xl:text-6xl tracking-tighter drop-shadow-md flex items-center">
+            <span className="text-brand-red">L</span>
+            <span className="text-brand-green">.Uz</span>
           </div>
           {settings && (
             <div className="flex flex-col">
-              <h1 className="text-5xl font-black text-gray-900 tracking-tight uppercase">
+              <h1 className="text-5xl font-black text-gray-900 tracking-tight uppercase drop-shadow-md">
                 {settings.title}
               </h1>
               {settings.subtitle && (
-                <p className="text-2xl text-brand-green font-semibold tracking-wide uppercase mt-1">
+                <p className="text-2xl text-brand-green font-bold tracking-wide uppercase mt-1 drop-shadow-md">
                   {settings.subtitle}
                 </p>
               )}
             </div>
           )}
         </div>
-        <div className="text-3xl font-bold text-gray-400">
-          TV-{tvNumber}
-        </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex items-center justify-center px-12 z-10 w-full h-full pb-12">
+      <main className="flex-1 flex items-center justify-center px-12 z-10 w-full h-full pb-20">
         <AnimatePresence mode="wait">
           {products.length > 0 ? (
             <motion.div
-              key={currentIndex}
+              key={cycleIndex}
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="w-full h-full flex items-center justify-center gap-8"
+              className="w-full h-full flex items-center justify-center gap-6"
             >
-              {currentBatch.map((product, idx) => (
-                <motion.div
-                  key={`${product.id}-${idx}`}
-                  variants={itemVariants[idx % 3]}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className={`flex flex-col items-center justify-center relative ${idx === 1 ? 'z-20 w-[35%]' : 'z-10 w-[28%] mt-24'}`}
-                >
-                  <motion.div animate="floating" className="w-full relative group">
-                    {/* Image Container with premium shadow and border */}
-                    <div className="w-full aspect-square rounded-[3rem] bg-white shadow-2xl overflow-hidden border-8 border-white relative flex flex-col">
-                       {product.image_url ? (
-                          <img 
-                            src={product.image_url} 
-                            alt={product.name_uz} 
-                            className="w-full h-full object-cover rounded-[2.5rem]"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-[2.5rem]">
-                            <span className="text-gray-300 text-6xl">No Image</span>
-                          </div>
-                        )}
+              {currentBatch.map((product, idx) => {
+                const customProps = { idx, total: currentSize };
+                const isCenter = idx === Math.floor(currentSize / 2);
+                
+                return (
+                  <motion.div
+                    key={`${product.id}-${idx}`}
+                    custom={customProps}
+                    variants={dynamicVariants}
+                    className={`flex-1 flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'}`}
+                    style={{ maxWidth: `${100 / currentSize}%` }}
+                  >
+                    <motion.div custom={customProps} animate="floating" className="w-full relative group">
+                      
+                      {/* Premium Card Layout matching Reference */}
+                      <div className="w-full bg-[#fcf8f2] rounded-[2rem] p-4 pb-8 shadow-2xl flex flex-col items-center">
                         
-                        {/* Gradient Overlay for Text Readability */}
-                        <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end p-8 pb-12 rounded-b-[2.5rem]">
-                           <h2 className="text-white text-4xl xl:text-5xl font-extrabold leading-tight shadow-black drop-shadow-lg text-center w-full">
+                        {/* Image Box */}
+                        <div className="w-full aspect-square rounded-[1.5rem] overflow-hidden bg-[#F3CA4B] relative shadow-inner">
+                           {product.image_url ? (
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name_uz} 
+                                className="w-full h-full object-cover scale-110"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-2xl">
+                                L.UZ
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Title & Price Container with Breathing Room */}
+                        <div className="mt-8 flex flex-col items-center text-center px-2 w-full">
+                           <h2 className="text-3xl xl:text-4xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 min-h-[5rem] flex items-center justify-center drop-shadow-sm">
                             {product.name_uz}
                            </h2>
+                           
+                           {/* Price separated below with margin and shine animation */}
+                           <motion.div 
+                             initial={{ backgroundPosition: '200% 0' }}
+                             animate={{ backgroundPosition: '-200% 0' }}
+                             transition={{ duration: 2, repeat: Infinity, repeatDelay: 2.5, ease: "linear" }}
+                             className="mt-6 text-3xl xl:text-5xl font-black drop-shadow-md bg-clip-text text-transparent inline-block pb-1"
+                             style={{
+                               backgroundImage: 'linear-gradient(110deg, #e31837 35%, #ffffff 50%, #e31837 65%)',
+                               backgroundSize: '200% 100%'
+                             }}
+                           >
+                             {product.price.toLocaleString()} UZS
+                           </motion.div>
                         </div>
-                    </div>
 
-                    {/* Price Tag Overlay */}
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-brand-green text-white px-10 py-5 rounded-full shadow-2xl border-4 border-white whitespace-nowrap">
-                      <span className="text-4xl xl:text-5xl font-black">
-                        {product.price.toLocaleString()} UZS
-                      </span>
-                    </div>
+                      </div>
+
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              ))}
+                );
+              })}
             </motion.div>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center text-gray-400 text-4xl"
+              className="text-center text-gray-800 text-4xl font-bold"
             >
               Hozircha mahsulotlar yo'q
             </motion.div>
