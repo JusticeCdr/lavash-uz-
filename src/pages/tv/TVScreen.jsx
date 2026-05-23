@@ -112,15 +112,13 @@ const TVScreen = () => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = idx - mid;
-      return { opacity: 0, x: dist * 100, scale: 0.8 };
+      return { opacity: 0, x: dist * 150, scale: 0.8 };
     },
     visible: (custom) => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = Math.abs(idx - mid);
-      // Center item is largest, sides are progressively smaller
       const scale = 1.05 - (dist * 0.15); 
-      // Center item is highest, sides are progressively lower
       const y = dist * 70; 
       
       return { 
@@ -128,14 +126,14 @@ const TVScreen = () => {
         x: 0, 
         y, 
         scale, 
-        transition: { type: 'spring', stiffness: 100, damping: 20 } 
+        transition: { type: 'tween', ease: 'easeInOut', duration: 0.8 } 
       };
     },
     exit: (custom) => {
       const { idx, total } = custom;
       const mid = Math.floor(total / 2);
       const dist = idx - mid;
-      return { opacity: 0, x: dist * 100, scale: 0.8, transition: { duration: 0.5 } };
+      return { opacity: 0, x: dist * 150, scale: 0.8, transition: { duration: 0.8, ease: 'easeInOut' } };
     }
   };
 
@@ -182,25 +180,24 @@ const TVScreen = () => {
 
       {/* Header (Fully Transparent & Blended) */}
       <header className="w-full flex justify-between items-center px-16 py-12 z-10 bg-transparent">
-        <div className="flex items-center gap-8">
-          {/* Premium stylized L.Uz logo */}
-          <div className="font-black text-5xl xl:text-6xl tracking-tighter drop-shadow-md flex items-center">
-            <span className="text-brand-red">L</span>
-            <span className="text-brand-green">.Uz</span>
-          </div>
-          {settings && (
-            <div className="flex flex-col">
-              <h1 className="text-5xl font-black text-gray-900 tracking-tight uppercase drop-shadow-md">
-                {settings.title}
-              </h1>
-              {settings.subtitle && (
-                <p className="text-2xl text-brand-green font-bold tracking-wide uppercase mt-1 drop-shadow-md">
-                  {settings.subtitle}
-                </p>
-              )}
-            </div>
-          )}
+        {/* Premium stylized L.Uz logo */}
+        <div className="font-black text-5xl xl:text-7xl tracking-tighter drop-shadow-md flex items-center">
+          <span className="text-brand-red">L</span>
+          <span className="text-brand-green">.Uz</span>
         </div>
+        
+        {settings && (
+          <div className="flex flex-col text-right">
+            <h1 className="text-5xl xl:text-6xl font-black text-gray-900 tracking-tight uppercase drop-shadow-md">
+              {settings.title}
+            </h1>
+            {settings.subtitle && (
+              <p className="text-3xl text-brand-green font-bold tracking-wide uppercase mt-2 drop-shadow-md">
+                {settings.subtitle}
+              </p>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}
@@ -224,21 +221,20 @@ const TVScreen = () => {
                     key={`${product.id}-${idx}`}
                     custom={customProps}
                     variants={dynamicVariants}
-                    className={`flex-1 flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'}`}
-                    style={{ maxWidth: `${100 / currentSize}%` }}
+                    className={`flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'} will-change-transform`}
                   >
-                    <motion.div custom={customProps} animate="floating" className="w-full relative group">
+                    <motion.div custom={customProps} animate="floating" className="w-full relative group will-change-transform">
                       
-                      {/* Premium Card Layout matching Reference */}
-                      <div className="w-full bg-[#fcf8f2] rounded-[2rem] p-4 pb-8 shadow-2xl flex flex-col items-center">
+                      {/* Premium Card Layout matching Reference - FIXED SIZES for Performance */}
+                      <div className="w-[300px] h-[450px] bg-[#fcf8f2] rounded-[2rem] p-4 flex flex-col justify-between items-center overflow-hidden shadow-2xl">
                         
-                        {/* Image Box */}
-                        <div className="w-full aspect-square rounded-[1.5rem] overflow-hidden bg-[#F3CA4B] relative shadow-inner">
+                        {/* Image Box - FIXED SIZES */}
+                        <div className="w-full h-[200px] shrink-0 rounded-[1.5rem] overflow-hidden bg-[#F3CA4B] relative shadow-inner">
                            {product.image_url ? (
                               <img 
                                 src={product.image_url} 
                                 alt={product.name_uz} 
-                                className="w-full h-full object-cover scale-110"
+                                className="w-full h-full object-contain"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-2xl">
@@ -247,9 +243,9 @@ const TVScreen = () => {
                             )}
                         </div>
 
-                        {/* Title & Price Container with Breathing Room */}
-                        <div className="mt-8 flex flex-col items-center text-center px-2 w-full">
-                           <h2 className="text-3xl xl:text-4xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 min-h-[5rem] flex items-center justify-center drop-shadow-sm">
+                        {/* Title & Price Container with Fixed Flex Alignment */}
+                        <div className="w-full flex flex-col items-center justify-between text-center px-2 flex-1 pt-6 pb-2">
+                           <h2 className="text-3xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 drop-shadow-sm">
                             {product.name_uz}
                            </h2>
                            
@@ -258,7 +254,7 @@ const TVScreen = () => {
                              initial={{ backgroundPosition: '200% 0' }}
                              animate={{ backgroundPosition: '-200% 0' }}
                              transition={{ duration: 2, repeat: Infinity, repeatDelay: 2.5, ease: "linear" }}
-                             className="mt-6 text-3xl xl:text-5xl font-black drop-shadow-md bg-clip-text text-transparent inline-block pb-1"
+                             className="mt-auto text-4xl font-black drop-shadow-md bg-clip-text text-transparent inline-block pb-1 will-change-transform"
                              style={{
                                backgroundImage: 'linear-gradient(110deg, #e31837 35%, #ffffff 50%, #e31837 65%)',
                                backgroundSize: '200% 100%'
