@@ -1,19 +1,11 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-brand-green: #005a32;
-  --color-brand-red: #e31837;
-  --color-brand-cream: #fcf8f2;
-
-  --font-sans: "Inter", "system-ui", "sans-serif";
-}
-
-@layer base {
-  body {
-    background-color: var(--color-brand-cream);
-    color: var(--color-gray-900);
-    font-family: var(--font-sans);
-  }
+body {
+  background-color: #fcf8f2;
+  color: #111827;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 /* Hide scrollbar for TV pages */
