@@ -204,7 +204,7 @@ const TVScreen = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex items-center justify-center px-12 z-10 w-full h-full pb-20">
+      <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12">
         <AnimatePresence mode="wait">
           {products.length > 0 ? (
               <motion.div
@@ -228,11 +228,11 @@ const TVScreen = () => {
                   >
                     <motion.div custom={customProps} animate="floating" className="w-full relative group will-change-transform transform-gpu">
                       
-                      {/* Premium Card Layout - MAX SIZES for TV with Border instead of Shadow */}
-                      <div className="w-[360px] h-[600px] bg-[#fcf8f2] rounded-[3rem] p-6 pb-10 flex flex-col items-center overflow-hidden border border-yellow-400/30">
+                      {/* Premium Card Layout - STRICT SIZING for TV */}
+                      <div className="w-[320px] h-[500px] bg-[#fcf8f2] rounded-[3rem] flex flex-col overflow-hidden border border-yellow-400/30 shadow-sm">
                         
-                        {/* Image Box - MAX SIZES */}
-                        <div className="w-full h-[340px] shrink-0 rounded-[2rem] overflow-hidden bg-white/50 relative">
+                        {/* Upper Block - Image (55%) */}
+                        <div className="w-full h-[55%] shrink-0 relative bg-white/50">
                            {product.image_url ? (
                               <img 
                                 src={product.image_url} 
@@ -246,14 +246,15 @@ const TVScreen = () => {
                             )}
                         </div>
 
-                        {/* Title & Price Container with tight gap and bottom padding */}
-                        <div className="w-full flex flex-col items-center justify-between text-center flex-1 mt-4">
-                           <h2 className="text-5xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2">
+                        {/* Lower Block - Text (45%) */}
+                        <div className="w-full h-[45%] flex flex-col justify-center items-center p-4">
+                           {/* Title */}
+                           <h2 className="text-4xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 text-center">
                             {product.name_uz}
                            </h2>
                            
-                           {/* Price separated below with Solid Text Color (No Animations for Max FPS) */}
-                           <div className="mb-4 text-6xl xl:text-7xl font-black text-brand-red inline-block will-change-transform transform-gpu">
+                           {/* Price (Solid Color, No Margin Hacks) */}
+                           <div className="mt-2 text-5xl font-black text-brand-red inline-block will-change-transform transform-gpu">
                              {product.price.toLocaleString()} UZS
                            </div>
                         </div>
