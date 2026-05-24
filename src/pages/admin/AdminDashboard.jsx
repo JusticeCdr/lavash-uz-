@@ -89,15 +89,10 @@ const AdminDashboard = () => {
     try {
       const productDataToSave = { ...formData };
       
-      // Auto-fill and enforce uniqueness for TV-2 Background
+      // Auto-fill defaults for TV-2 Background (No name or price required)
       if (productDataToSave.tv_number === 2) {
         productDataToSave.name_uz = 'TV-2 Fullscreen Image';
         productDataToSave.price = 0;
-        
-        if (!editingProduct) {
-          // Delete existing TV-2 images to enforce 1-image rule
-          await supabase.from('products').delete().eq('tv_number', 2);
-        }
       }
 
       if (editingProduct) {

@@ -39,11 +39,20 @@ const TVScreen = () => {
   }, [tvNumber]);
 
   useEffect(() => {
-    // Rotation logic: Every 8 seconds, move to the next batch strictly sequentially
+    // Rotation logic
     if (products.length === 0) return;
+
+    // TV-2: 10 seconds per image, TV-1/TV-3: 8 seconds per batch
+    const intervalTime = tvNumber === 2 ? 10000 : 8000;
 
     const interval = setInterval(() => {
       setPagination((prev) => {
+        // TV-2: Rotate 1-by-1
+        if (tvNumber === 2) {
+          return { ...prev, currentIndex: (prev.currentIndex + 1) % products.length };
+        }
+
+        // TV-1 & TV-3: Rotate by batch size
         const currentBatchSize = CYCLE_SIZES[prev.cycleIndex];
         let nextIndex = prev.currentIndex + currentBatchSize;
         let nextCycle = (prev.cycleIndex + 1) % CYCLE_SIZES.length;
@@ -56,10 +65,10 @@ const TVScreen = () => {
 
         return { currentIndex: nextIndex, cycleIndex: nextCycle };
       });
-    }, 8000);
+    }, intervalTime);
 
     return () => clearInterval(interval);
-  }, [products.length]);
+  }, [products.length, tvNumber]);
 
   const fetchData = async () => {
     const { data: pData } = await supabase
@@ -90,10 +99,10 @@ const TVScreen = () => {
 
   // --- TV-2 FULLSCREEN IMAGE MODE ---
   if (tvNumber === 2) {
-    // Show 100% clean image if it exists
-    const fullScreenProduct = products[0];
+    // Cycle through all uploaded images using currentIndex
+    const currentFullScreenProduct = products[pagination.currentIndex];
     
-    if (!fullScreenProduct || !fullScreenProduct.image_url) {
+    if (!currentFullScreenProduct || !currentFullScreenProduct.image_url) {
       return (
         <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
           <h1 className="text-4xl text-gray-500 tracking-widest uppercase">No Background Image Set</h1>
@@ -101,10 +110,11 @@ const TVScreen = () => {
       );
     }
     
+    // Instant zero-animation swap
     return (
       <div className="w-screen h-screen overflow-hidden bg-black flex items-center justify-center">
         <img 
-          src={fullScreenProduct.image_url} 
+          src={currentFullScreenProduct.image_url} 
           alt="TV-2 Background" 
           className="w-full h-full object-fill" 
         />
