@@ -87,16 +87,29 @@ const AdminDashboard = () => {
   const saveProduct = async (e) => {
     e.preventDefault();
     try {
+      const productDataToSave = { ...formData };
+      
+      // Auto-fill and enforce uniqueness for TV-2 Background
+      if (productDataToSave.tv_number === 2) {
+        productDataToSave.name_uz = 'TV-2 Fullscreen Image';
+        productDataToSave.price = 0;
+        
+        if (!editingProduct) {
+          // Delete existing TV-2 images to enforce 1-image rule
+          await supabase.from('products').delete().eq('tv_number', 2);
+        }
+      }
+
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(formData)
+          .update(productDataToSave)
           .eq('id', editingProduct.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('products')
-          .insert([formData]);
+          .insert([productDataToSave]);
         if (error) throw error;
       }
       setIsModalOpen(false);
@@ -357,26 +370,6 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name (UZ) *</label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.name_uz}
-                      onChange={(e) => setFormData({...formData, name_uz: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Price (UZS) *</label>
-                    <input
-                      required
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Target TV *</label>
                     <select
                       value={formData.tv_number}
@@ -384,19 +377,44 @@ const AdminDashboard = () => {
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
                     >
                       <option value={1}>TV-1</option>
-                      <option value={2}>TV-2</option>
+                      <option value={2}>TV-2 (Fullscreen Image Only)</option>
                       <option value={3}>TV-3</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
-                    <input
-                      type="number"
-                      value={formData.sort_order}
-                      onChange={(e) => setFormData({...formData, sort_order: Number(e.target.value)})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
-                    />
-                  </div>
+                  
+                  {formData.tv_number !== 2 && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Name (UZ) *</label>
+                        <input
+                          required
+                          type="text"
+                          value={formData.name_uz}
+                          onChange={(e) => setFormData({...formData, name_uz: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Price (UZS) *</label>
+                        <input
+                          required
+                          type="number"
+                          value={formData.price}
+                          onChange={(e) => setFormData({...formData, price: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
+                        <input
+                          type="number"
+                          value={formData.sort_order}
+                          onChange={(e) => setFormData({...formData, sort_order: Number(e.target.value)})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-4">

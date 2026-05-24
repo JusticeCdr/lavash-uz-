@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Fixed cycle pattern as requested by user
-const CYCLE_SIZES = [4, 5, 3];
+const CYCLE_SIZES = [3];
 
 const TVScreen = () => {
   const { id } = useParams();
@@ -88,6 +88,30 @@ const TVScreen = () => {
     );
   }
 
+  // --- TV-2 FULLSCREEN IMAGE MODE ---
+  if (tvNumber === 2) {
+    // Show 100% clean image if it exists
+    const fullScreenProduct = products[0];
+    
+    if (!fullScreenProduct || !fullScreenProduct.image_url) {
+      return (
+        <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden">
+          <h1 className="text-4xl text-gray-500 tracking-widest uppercase">No Background Image Set</h1>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="w-screen h-screen overflow-hidden bg-black flex items-center justify-center">
+        <img 
+          src={fullScreenProduct.image_url} 
+          alt="TV-2 Background" 
+          className="w-full h-full object-fill" 
+        />
+      </div>
+    );
+  }
+
   const { currentIndex, cycleIndex } = pagination;
   const currentSize = CYCLE_SIZES[cycleIndex];
   
@@ -97,63 +121,24 @@ const TVScreen = () => {
   // Determine the center product for the watermark based on the ACTUAL batch length
   const centerProduct = currentBatch[Math.floor(currentBatch.length / 2)];
 
-  // Animation Variants
+  // Animation Variants - Extremely simple for Low End TVs (Ultra Performance)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.15 }
+      transition: { staggerChildren: 0.2 }
     },
-    exit: {
-      opacity: 0,
-      transition: { duration: 0.5 }
-    }
+    exit: { opacity: 0 }
   };
 
   const dynamicVariants = {
-    hidden: (custom) => {
-      const { idx, total } = custom;
-      const mid = Math.floor(total / 2);
-      const dist = idx - mid;
-      return { x: dist * 150, scale: 0.8 };
+    hidden: { opacity: 0, x: 50 },
+    visible: { 
+      opacity: 1, 
+      x: 0, 
+      transition: { type: 'tween', ease: 'easeOut', duration: 0.5 } 
     },
-    visible: (custom) => {
-      const { idx, total } = custom;
-      const mid = Math.floor(total / 2);
-      const dist = Math.abs(idx - mid);
-      const scale = 1.05 - (dist * 0.15); 
-      // Increased y offset for the larger cards to maintain staggering effect
-      const y = dist * 90; 
-      
-      return { 
-        x: 0, 
-        y, 
-        scale, 
-        transition: { type: 'tween', ease: 'easeInOut', duration: 0.8 } 
-      };
-    },
-    exit: (custom) => {
-      const { idx, total } = custom;
-      const mid = Math.floor(total / 2);
-      const dist = idx - mid;
-      return { x: dist * 150, scale: 0.8, transition: { duration: 0.8, ease: 'easeInOut' } };
-    }
-  };
-
-  const floatingVariants = {
-    floating: (custom) => {
-      const { idx, total } = custom;
-      const dist = Math.abs(idx - Math.floor(total / 2));
-      return {
-        y: [0, -15 - (dist * 5), 0],
-        transition: { 
-          duration: 4 + (dist * 0.5), 
-          repeat: Infinity, 
-          ease: 'easeInOut', 
-          delay: dist * 0.2 
-        }
-      };
-    }
+    exit: { opacity: 0, x: -50, transition: { duration: 0.4 } }
   };
 
   return (
@@ -204,7 +189,7 @@ const TVScreen = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12 -translate-y-[50px]">
+      <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12 pb-16">
         <AnimatePresence mode="wait">
           {products.length > 0 ? (
               <motion.div
@@ -220,24 +205,21 @@ const TVScreen = () => {
                 const isCenter = idx === Math.floor(currentSize / 2);
                 
                 return (
-                  <motion.div
-                    key={`${product.id}-${idx}`}
-                    custom={customProps}
-                    variants={dynamicVariants}
-                    className={`flex flex-col items-center justify-center relative ${isCenter ? 'z-20' : 'z-10'} will-change-transform transform-gpu`}
-                  >
-                    <motion.div custom={customProps} animate="floating" className="w-full relative group will-change-transform transform-gpu">
-                      
+                    <motion.div
+                      key={`${product.id}-${idx}`}
+                      variants={dynamicVariants}
+                      className={`flex flex-col items-center justify-center relative z-10 will-change-transform transform-gpu`}
+                    >
                       {/* Premium Card Layout - STRICT SIZING for TV */}
-                      <div className="w-[320px] h-[500px] bg-[#fcf8f2] rounded-[3rem] flex flex-col overflow-hidden border border-yellow-400/30 shadow-sm">
+                      <div className="w-[460px] h-[750px] bg-[#fcf8f2] rounded-[4rem] flex flex-col overflow-hidden border border-yellow-400/30 shadow-sm">
                         
                         {/* Upper Block - Image (55%) */}
-                        <div className="w-full h-[55%] shrink-0 relative bg-white/50">
+                        <div className="w-full h-[55%] shrink-0 relative bg-white">
                            {product.image_url ? (
                               <img 
                                 src={product.image_url} 
                                 alt={product.name_uz} 
-                                className="w-full h-full object-cover mix-blend-multiply"
+                                className="w-full h-full object-cover"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl">
@@ -247,22 +229,20 @@ const TVScreen = () => {
                         </div>
 
                         {/* Lower Block - Text (45%) */}
-                        <div className="w-full h-[45%] flex flex-col justify-center items-center p-4">
+                        <div className="w-full h-[45%] flex flex-col justify-center items-center p-6">
                            {/* Title */}
-                           <h2 className="text-4xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 text-center">
+                           <h2 className="text-5xl font-black text-brand-green uppercase tracking-tight leading-tight line-clamp-2 text-center">
                             {product.name_uz}
                            </h2>
                            
                            {/* Price (Solid Color, No Margin Hacks) */}
-                           <div className="mt-2 text-5xl font-black text-brand-red inline-block will-change-transform transform-gpu">
+                           <div className="mt-4 text-7xl font-black text-brand-red inline-block will-change-transform transform-gpu">
                              {product.price.toLocaleString()} UZS
                            </div>
                         </div>
 
                       </div>
-
                     </motion.div>
-                  </motion.div>
                 );
               })}
             </motion.div>
