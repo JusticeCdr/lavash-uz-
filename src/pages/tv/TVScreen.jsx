@@ -131,25 +131,7 @@ const TVScreen = () => {
   // Determine the center product for the watermark based on the ACTUAL batch length
   const centerProduct = currentBatch[Math.floor(currentBatch.length / 2)];
 
-  // Animation Variants - Extremely simple for Low End TVs (Ultra Performance)
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2 }
-    },
-    exit: { opacity: 0 }
-  };
-
-  const dynamicVariants = {
-    hidden: { opacity: 0, x: 50 },
-    visible: { 
-      opacity: 1, 
-      x: 0, 
-      transition: { type: 'tween', ease: 'easeOut', duration: 0.5 } 
-    },
-    exit: { opacity: 0, x: -50, transition: { duration: 0.4 } }
-  };
+  // No Animation Variants - Zero overhead for Low End TVs (Ultra Performance)
 
   return (
     <div className="w-screen h-screen bg-[#FACC15] overflow-hidden no-scrollbar flex flex-col relative font-sans">
@@ -200,25 +182,18 @@ const TVScreen = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-row items-center justify-center w-full overflow-hidden z-10 px-12 pb-16">
-        <AnimatePresence mode="wait">
+        <>
           {products.length > 0 ? (
-              <motion.div
+              <div
               key={cycleIndex}
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="w-full h-full flex items-center justify-center gap-6 will-change-transform transform-gpu"
+              className="w-full h-full flex items-center justify-center gap-6"
             >
               {currentBatch.map((product, idx) => {
-                const customProps = { idx, total: currentSize };
-                const isCenter = idx === Math.floor(currentSize / 2);
                 
                 return (
-                    <motion.div
+                    <div
                       key={`${product.id}-${idx}`}
-                      variants={dynamicVariants}
-                      className={`flex flex-col items-center justify-center relative z-10 will-change-transform transform-gpu`}
+                      className={`flex flex-col items-center justify-center relative z-10`}
                     >
                       {/* Premium Card Layout - STRICT SIZING for TV */}
                       <div className="w-[460px] h-[750px] bg-[#fcf8f2] rounded-[4rem] flex flex-col overflow-hidden border border-yellow-400/30 shadow-sm">
@@ -252,20 +227,18 @@ const TVScreen = () => {
                         </div>
 
                       </div>
-                    </motion.div>
+                    </div>
                 );
               })}
-            </motion.div>
+            </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            <div
               className="text-center text-gray-800 text-4xl font-bold"
             >
               Hozircha mahsulotlar yo'q
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
       </main>
     </div>
   );
