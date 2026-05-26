@@ -189,7 +189,17 @@ const TVScreen = () => {
               className="w-full h-full flex items-center justify-center gap-6"
             >
               {currentBatch.map((product, idx) => {
-                
+                let isDualPrice = false;
+                let chickenPrice = null;
+                let standardPrefix = product.category_title;
+
+                try {
+                  if (product.category_title && product.category_title.includes('"chickenPrice"')) {
+                    const parsed = JSON.parse(product.category_title);
+                    isDualPrice = true;
+                    chickenPrice = parsed.chickenPrice;
+                  }
+                } catch(e) {}
                 return (
                     <div
                       key={`${product.id}-${idx}`}
@@ -221,10 +231,23 @@ const TVScreen = () => {
                            </h2>
                            
                            {/* Price (Solid Color, No Margin Hacks) */}
-                           <div className="mt-4 text-7xl font-black text-brand-red flex items-center justify-center gap-3">
-                             {product.category_title && <span>{product.category_title}</span>}
-                             <span>{product.price.toLocaleString()} UZS</span>
-                           </div>
+                           {isDualPrice ? (
+                             <div className="mt-4 flex flex-col gap-3 items-center justify-center">
+                               <div className="text-5xl font-black text-brand-red flex items-center justify-center gap-3">
+                                 <span>🐮</span>
+                                 <span>{product.price.toLocaleString()} UZS</span>
+                               </div>
+                               <div className="text-5xl font-black text-brand-red flex items-center justify-center gap-3">
+                                 <span>🐔</span>
+                                 <span>{Number(chickenPrice).toLocaleString()} UZS</span>
+                               </div>
+                             </div>
+                           ) : (
+                             <div className="mt-4 text-7xl font-black text-brand-red flex items-center justify-center gap-3">
+                               {standardPrefix && <span>{standardPrefix}</span>}
+                               <span>{product.price.toLocaleString()} UZS</span>
+                             </div>
+                           )}
                         </div>
 
                       </div>

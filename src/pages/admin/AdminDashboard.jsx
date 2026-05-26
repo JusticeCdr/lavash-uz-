@@ -23,6 +23,8 @@ const AdminDashboard = () => {
     category_title: '',
     is_active: true,
     sort_order: 0,
+    is_dual_price: false,
+    chicken_price: '',
   });
 
   useEffect(() => {
@@ -88,11 +90,21 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       const productDataToSave = { ...formData };
+      delete productDataToSave.is_dual_price;
+      delete productDataToSave.chicken_price;
       
       // Auto-fill defaults for TV-2 Background (No name or price required)
       if (productDataToSave.tv_number === 2) {
         productDataToSave.name_uz = 'TV-2 Fullscreen Image';
         productDataToSave.price = 0;
+        productDataToSave.category_title = '';
+      } else {
+        // For TV-1 and TV-3, handle Dual Price serialization
+        if (formData.is_dual_price) {
+          productDataToSave.category_title = JSON.stringify({ chickenPrice: formData.chicken_price });
+        } else {
+          productDataToSave.category_title = formData.category_title || '';
+        }
       }
 
       if (editingProduct) {
@@ -168,8 +180,26 @@ const AdminDashboard = () => {
 
   const openModal = (product = null) => {
     if (product) {
+      let isDual = false;
+      let chickenPrice = '';
+      let catTitle = product.category_title || '';
+
+      if (catTitle.includes('"chickenPrice"')) {
+        try {
+          const parsed = JSON.parse(catTitle);
+          isDual = true;
+          chickenPrice = parsed.chickenPrice;
+          catTitle = ''; // Hide JSON from the regular text field
+        } catch (e) {}
+      }
+
       setEditingProduct(product);
-      setFormData(product);
+      setFormData({
+        ...product,
+        category_title: catTitle,
+        is_dual_price: isDual,
+        chicken_price: chickenPrice
+      });
     } else {
       setEditingProduct(null);
       setFormData({
@@ -180,6 +210,8 @@ const AdminDashboard = () => {
         category_title: '',
         is_active: true,
         sort_order: 0,
+        is_dual_price: false,
+        chicken_price: '',
       });
     }
     setIsModalOpen(true);
@@ -389,26 +421,69 @@ const AdminDashboard = () => {
                           className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
                         />
                       </div>
+                      
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Price (UZS) *</label>
-                        <input
-                          required
-                          type="number"
-                          value={formData.price}
-                          onChange={(e) => setFormData({...formData, price: e.target.value})}
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Pricing Type</label>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" checked={!formData.is_dual_price} onChange={() => setFormData({...formData, is_dual_price: false})} className="w-4 h-4 text-brand-green" />
+                            <span className="text-sm font-medium">Single Price</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" checked={formData.is_dual_price} onChange={() => setFormData({...formData, is_dual_price: true})} className="w-4 h-4 text-brand-green" />
+                            <span className="text-sm font-medium">Beef & Chicken</span>
+                          </label>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Price Prefix / Icon (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. 🔥 yoki Aksiya:"
-                          value={formData.category_title || ''}
-                          onChange={(e) => setFormData({...formData, category_title: e.target.value})}
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
-                        />
-                      </div>
+
+                      {formData.is_dual_price ? (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Beef Price (🐮) *</label>
+                            <input
+                              required
+                              type="number"
+                              value={formData.price}
+                              onChange={(e) => setFormData({...formData, price: e.target.value})}
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Chicken Price (🐔) *</label>
+                            <input
+                              required
+                              type="number"
+                              value={formData.chicken_price}
+                              onChange={(e) => setFormData({...formData, chicken_price: e.target.value})}
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Price (UZS) *</label>
+                            <input
+                              required
+                              type="number"
+                              value={formData.price}
+                              onChange={(e) => setFormData({...formData, price: e.target.value})}
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Price Prefix / Icon (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 🔥 yoki Aksiya:"
+                              value={formData.category_title || ''}
+                              onChange={(e) => setFormData({...formData, category_title: e.target.value})}
+                              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                            />
+                          </div>
+                        </>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
                         <input
