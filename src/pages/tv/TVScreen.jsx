@@ -221,8 +221,9 @@ const TVScreen = () => {
                            </h2>
                            
                            {/* Price (Solid Color, No Margin Hacks) */}
-                           <div className="mt-4 text-7xl font-black text-brand-red inline-block will-change-transform transform-gpu">
-                             {product.price.toLocaleString()} UZS
+                           <div className="mt-4 text-7xl font-black text-brand-red flex items-center justify-center gap-3">
+                             {product.category_title && <span>{product.category_title}</span>}
+                             <span>{product.price.toLocaleString()} UZS</span>
                            </div>
                         </div>
 

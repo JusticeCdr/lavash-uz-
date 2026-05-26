@@ -400,6 +400,16 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Price Prefix / Icon (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 🔥 yoki Aksiya:"
+                          value={formData.category_title || ''}
+                          onChange={(e) => setFormData({...formData, category_title: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-brand-green focus:outline-none"
+                        />
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
                         <input
                           type="number"
