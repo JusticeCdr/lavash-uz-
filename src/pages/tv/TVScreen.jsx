@@ -78,7 +78,17 @@ const TVScreen = () => {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
-    if (pData) setProducts(pData);
+    if (pData) {
+      setProducts(pData);
+      
+      // Aggressive Image Preloading for TVs
+      pData.forEach(product => {
+        if (product.image_url) {
+          const img = new Image();
+          img.src = product.image_url;
+        }
+      });
+    }
 
     const { data: sData } = await supabase
       .from('tv_settings')
@@ -117,6 +127,8 @@ const TVScreen = () => {
           src={currentFullScreenProduct.image_url} 
           alt="TV-2 Background" 
           className="w-full h-full object-fill" 
+          loading="eager"
+          decoding="sync"
         />
       </div>
     );
@@ -215,6 +227,8 @@ const TVScreen = () => {
                                 src={product.image_url} 
                                 alt={product.name_uz} 
                                 className="w-full h-full object-cover"
+                                loading="eager"
+                                decoding="sync"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-brand-green font-bold text-3xl">
